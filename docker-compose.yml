@@ -92,24 +92,3 @@ volumes:
   postgres_data:
   redis_data:
   minio_data:
-
-# .env.example
-# Local development settings
-POSTGRES_DB=mapstitcher
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=postgres
-REDIS_URL=redis://redis:6379/0
-S3_ENDPOINT=http://minio:9000
-S3_ACCESS_KEY=minioadmin
-S3_SECRET_KEY=minioadmin
-S3_BUCKET=mapstitcher
-
-# Production settings (for reference)
-# POSTGRES_DB=mapstitcher-prod
-# POSTGRES_USER=mapstitcher
-# POSTGRES_PASSWORD=<secure-password>
-# REDIS_URL=redis://<redis-host>:6379/0
-# S3_ENDPOINT=https://storage.googleapis.com
-# S3_ACCESS_KEY=<gcp-access-key>
-# S3_SECRET_KEY=<gcp-secret-key>
-# S3_BUCKET=mapstitcher-prod
