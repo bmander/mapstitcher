@@ -1,0 +1,57 @@
+#!/bin/bash
+
+# Configuration
+PROJECT_ID="mapstitcher"
+REGION="us-central1"
+CLUSTER_NAME="mapstitcher-cluster"
+
+# Enable required APIs
+gcloud services enable \
+    container.googleapis.com \
+    cloudbuild.googleapis.com \
+    cloudresourcemanager.googleapis.com \
+    compute.googleapis.com \
+    storage.googleapis.com \
+    redis.googleapis.com \
+    sql-component.googleapis.com
+
+# Create GKE cluster
+gcloud container clusters create $CLUSTER_NAME \
+    --project=$PROJECT_ID \
+    --region=$REGION \
+    --machine-type=e2-standard-2 \
+    --num-nodes=1 \
+    --enable-autoscaling \
+    --min-nodes=1 \
+    --max-nodes=3
+
+# Get credentials for kubectl
+gcloud container clusters get-credentials $CLUSTER_NAME \
+    --region=$REGION \
+    --project=$PROJECT_ID
+
+# Create Cloud SQL instance
+gcloud sql instances create mapstitcher-db \
+    --database-version=POSTGRES_15 \
+    --cpu=1 \
+    --memory=3840MiB \
+    --region=$REGION \
+    --project=$PROJECT_ID
+
+# Create Cloud Memorystore (Redis) instance
+gcloud redis instances create mapstitcher-redis \
+    --size=1 \
+    --region=$REGION \
+    --project=$PROJECT_ID
+
+# Create Cloud Storage bucket
+gsutil mb -p $PROJECT_ID -l $REGION gs://mapstitcher-storage
+
+# Build and push Docker images to Google Container Registry
+gcloud builds submit ./frontend --tag gcr.io/$PROJECT_ID/frontend
+gcloud builds submit ./backend --tag gcr.io/$PROJECT_ID/api
+gcloud builds submit ./backend --tag gcr.io/$PROJECT_ID/worker \
+    --config=backend/cloudbuild.worker.yaml
+
+# Apply Kubernetes configurations
+kubectl apply -f k8s/
