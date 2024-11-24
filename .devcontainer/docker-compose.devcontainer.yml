@@ -4,7 +4,7 @@ version: '3.8'
 services:
   api:
     build:
-      context: ../backend
+      context: backend
       dockerfile: Dockerfile
       args:
         # Add build-time arguments if needed
