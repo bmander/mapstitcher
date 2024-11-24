@@ -1,0 +1,188 @@
+# docker-compose.yml
+version: '3.8'
+
+services:
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    environment:
+      - NODE_ENV=development
+      - REACT_APP_API_URL=http://localhost:5000
+    depends_on:
+      - api
+
+  api:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "5000:5000"
+    volumes:
+      - ./backend:/app
+    environment:
+      - FLASK_ENV=development
+      - FLASK_APP=app.py
+      - POSTGRES_URL=postgresql://postgres:postgres@db:5432/mapstitcher
+      - REDIS_URL=redis://redis:6379/0
+      - S3_ENDPOINT=http://minio:9000
+      - S3_ACCESS_KEY=minioadmin
+      - S3_SECRET_KEY=minioadmin
+      - S3_BUCKET=mapstitcher
+    depends_on:
+      - db
+      - redis
+      - minio
+
+  worker:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile.worker
+    volumes:
+      - ./backend:/app
+    environment:
+      - POSTGRES_URL=postgresql://postgres:postgres@db:5432/mapstitcher
+      - REDIS_URL=redis://redis:6379/0
+      - S3_ENDPOINT=http://minio:9000
+      - S3_ACCESS_KEY=minioadmin
+      - S3_SECRET_KEY=minioadmin
+      - S3_BUCKET=mapstitcher
+    depends_on:
+      - db
+      - redis
+      - minio
+    command: ["celery", "-A", "tasks", "worker", "--loglevel=info"]
+
+  db:
+    image: postgis/postgis:15-3.3
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=mapstitcher
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+  minio:
+    image: minio/minio
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+
+# frontend/Dockerfile
+FROM node:18-alpine
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm install
+
+COPY . .
+
+EXPOSE 3000
+CMD ["npm", "start"]
+
+# backend/Dockerfile
+FROM python:3.11-slim
+
+# Install system dependencies including GDAL
+RUN apt-get update && apt-get install -y \
+    gdal-bin \
+    libgdal-dev \
+    gcc \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+COPY . .
+
+EXPOSE 5000
+CMD ["flask", "run", "--host=0.0.0.0"]
+
+# backend/Dockerfile.worker
+FROM python:3.11-slim
+
+# Install system dependencies including GDAL
+RUN apt-get update && apt-get install -y \
+    gdal-bin \
+    libgdal-dev \
+    gcc \
+    python3-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+WORKDIR /app
+
+COPY requirements.txt .
+RUN pip install -r requirements.txt
+
+COPY . .
+
+CMD ["celery", "-A", "tasks", "worker", "--loglevel=info"]
+
+# .devcontainer/devcontainer.json
+{
+  "name": "MapStitcher Development",
+  "dockerComposeFile": "../docker-compose.yml",
+  "service": "api",
+  "workspaceFolder": "/app",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-python.python",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode"
+      ]
+    }
+  },
+  "forwardPorts": [3000, 5000, 9000, 9001],
+  "postCreateCommand": "pip install -r requirements.txt"
+}
+
+# .env.example
+# Local development settings
+POSTGRES_DB=mapstitcher
+POSTGRES_USER=postgres
+POSTGRES_PASSWORD=postgres
+REDIS_URL=redis://redis:6379/0
+S3_ENDPOINT=http://minio:9000
+S3_ACCESS_KEY=minioadmin
+S3_SECRET_KEY=minioadmin
+S3_BUCKET=mapstitcher
+
+# Production settings (for reference)
+# POSTGRES_DB=mapstitcher-prod
+# POSTGRES_USER=mapstitcher
+# POSTGRES_PASSWORD=<secure-password>
+# REDIS_URL=redis://<redis-host>:6379/0
+# S3_ENDPOINT=https://storage.googleapis.com
+# S3_ACCESS_KEY=<gcp-access-key>
+# S3_SECRET_KEY=<gcp-secret-key>
+# S3_BUCKET=mapstitcher-prod
