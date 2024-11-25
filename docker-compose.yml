@@ -46,6 +46,8 @@ services:
       dockerfile: Dockerfile.worker
     volumes:
       - ./backend:/app
+      - /app/__pycache__
+      - /app/*.pyc
     environment:
       - POSTGRES_URL=postgresql://postgres:postgres@db:5432/mapstitcher
       - REDIS_URL=redis://redis:6379/0
@@ -53,11 +55,11 @@ services:
       - S3_ACCESS_KEY=minioadmin
       - S3_SECRET_KEY=minioadmin
       - S3_BUCKET=mapstitcher
+      - C_FORCE_ROOT=true
     depends_on:
       - db
       - redis
       - minio
-    command: ["celery", "-A", "tasks", "worker", "--loglevel=info"]
 
   db:
     image: postgis/postgis:15-3.3
@@ -93,3 +95,4 @@ volumes:
   postgres_data:
   redis_data:
   minio_data:
+  frontend-node-modules:

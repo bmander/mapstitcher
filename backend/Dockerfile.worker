@@ -11,9 +11,19 @@ RUN apt-get update && apt-get install -y \
 
 WORKDIR /app
 
+# Copy requirements first to leverage Docker cache
 COPY requirements.txt .
-RUN pip install -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy the rest of the application
 COPY . .
 
-CMD ["celery", "-A", "tasks", "worker", "--loglevel=info"]
+# Create directory for celery beat schedule
+RUN mkdir -p /var/run/celery
+
+# Set environment variables
+ENV PYTHONPATH=/app
+ENV C_FORCE_ROOT=true
+
+# Command to run celery worker
+ENTRYPOINT ["celery", "-A", "tasks.celery", "worker", "--loglevel=info"]
