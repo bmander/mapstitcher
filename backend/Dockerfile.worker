@@ -6,6 +6,7 @@ RUN apt-get update && apt-get install -y \
     gdal-bin \
     libgdal-dev \
     gcc \
+    g++ \
     python3-dev \
     && rm -rf /var/lib/apt/lists/*
 
