@@ -1,5 +1,5 @@
 # .devcontainer/docker-compose.devcontainer.yml
-version: '3.8'
+version: "3.8"
 
 services:
   api:
@@ -11,10 +11,10 @@ services:
         USER_UID: 1000
         USER_GID: 1000
     volumes:
-      - ..:/workspace:cached
+      - .:/workspace:cached
       - api-vscode-extensions:/root/.vscode-server/extensions
       - api-vscode-insider-extensions:/root/.vscode-server-insiders/extensions
-      
+
     # Overrides default command so things don't shut down after the process ends.
     command: sleep infinity
 
@@ -27,7 +27,7 @@ services:
 
   frontend:
     volumes:
-      - ..:/workspace:cached
+      - .:/workspace:cached
       - frontend-node-modules:/app/node_modules
       - frontend-vscode-extensions:/root/.vscode-server/extensions
     environment:
