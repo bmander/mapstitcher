@@ -31,8 +31,6 @@
         "ms-azuretools.vscode-docker",
         // YAML
         "redhat.vscode-yaml",
-        // Git
-        "eamodio.gitlens",
         // Database tools
         "mtxr.sqltools",
         "mtxr.sqltools-driver-pg",
