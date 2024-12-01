@@ -7,7 +7,7 @@ function App() {
       <header className="App-header">
         <h1>MapStitcher</h1>
         <p>
-          A collaborative platform for georeferencing historical maps
+          A collaborative platform for georeferencing and viewing historical maps
         </p>
       </header>
     </div>
